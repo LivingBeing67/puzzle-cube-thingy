@@ -7,10 +7,72 @@
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
-  <main>
+  <header class="topbar">
     <h1>Puzzle Cube Thingy</h1>
-    <p>Work in progress.</p>
+    <div class="tools">
+      <label class="field">Size
+        <select id="size"></select>
+      </label>
+      <button id="undo" title="Undo (Ctrl/Cmd+Z)">Undo</button>
+      <button id="redo" title="Redo (Ctrl/Cmd+Shift+Z)">Redo</button>
+      <button id="export">Export</button>
+      <button id="import">Import</button>
+      <input type="file" id="importFile" accept=".json,application/json" hidden>
+      <button id="clearAll" class="danger">Clear all</button>
+    </div>
+  </header>
+
+  <main class="layout">
+    <aside class="panel">
+      <section>
+        <div class="section-head">
+          <h2>Pieces</h2>
+          <button id="addPiece" title="Add piece (N)">+ Add piece</button>
+        </div>
+        <ul id="pieceList" class="piece-list"></ul>
+      </section>
+
+      <section>
+        <div class="section-head">
+          <h2>Layer <span id="layerLabel"></span></h2>
+          <div class="btn-group">
+            <button id="layerDown" title="Layer down ([)">▼</button>
+            <button id="layerUp" title="Layer up (])">▲</button>
+          </div>
+        </div>
+        <div class="layer-wrap">
+          <span class="axis axis-x">x →</span>
+          <span class="axis axis-z">z ↓</span>
+          <div id="layerGrid" class="layer-grid"></div>
+        </div>
+        <p class="hint">Click or drag to paint with the active piece. Click a cell that's already the active piece, or right-click, to erase. Dots show the layer below.</p>
+        <div class="btn-row">
+          <button id="fillLayer">Fill empty cells</button>
+          <button id="clearLayer">Clear layer</button>
+        </div>
+      </section>
+
+      <section>
+        <h2>Status</h2>
+        <div id="status"></div>
+      </section>
+    </aside>
+
+    <section class="stage">
+      <div id="viewport"></div>
+      <div class="stage-controls">
+        <label class="field">Explode
+          <input type="range" id="explode" min="0" max="1" step="0.01" value="0">
+        </label>
+        <label class="check"><input type="checkbox" id="solo"> Active piece only</label>
+        <label class="check"><input type="checkbox" id="slice"> Hide layers above</label>
+        <button id="resetView">Reset view</button>
+      </div>
+      <p class="stage-hint">Drag to rotate · scroll to zoom · click to add a cube · Shift-click or right-click to remove · Alt-click to pick a piece</p>
+    </section>
   </main>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
   <script src="script.js"></script>
 </body>
 </html>
