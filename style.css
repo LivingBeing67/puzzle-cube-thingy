@@ -164,6 +164,23 @@ input[type="range"] { accent-color: var(--accent); }
   border-radius: 999px;
   max-width: calc(100% - 32px);
 }
+.viewcube {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+}
+#viewcubeHost { width: 120px; height: 120px; }
+#viewcubeHost canvas { display: block; touch-action: none; cursor: grab; }
+#viewcubeHost canvas.pointing { cursor: pointer; }
+.viewcube-buttons { display: flex; gap: 4px; }
+.viewcube button { padding: 3px 9px; background: rgba(37, 41, 53, .9); }
+.viewcube .spin { width: 100%; }
+.viewcube .spin[aria-pressed="true"] { border-color: var(--accent); color: var(--accent); }
+
 .stage-hint {
   position: absolute;
   bottom: 10px;

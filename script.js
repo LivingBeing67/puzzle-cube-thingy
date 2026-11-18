@@ -275,22 +275,171 @@
     }
   }
 
-  // Camera orbit
+  // ---------- Camera orbit ----------
+  // theta: angle around the vertical axis (0 = looking from +z / Front)
+  // phi:   angle down from straight above (0 = Top, π = Bottom)
+  const HOME = { theta: Math.PI / 4, phi: 1.0 };
+  const PHI_MIN = 0.001;
+  const PHI_MAX = Math.PI - 0.001;
+  const QUARTER = Math.PI / 2;
   let theta, phi, radius;
+  let anim = null;       // active camera tween
+  let spinning = false;  // auto-spin toggle
+
   function resetView() {
-    theta = Math.PI / 4;
-    phi = 1.0;
+    anim = null;
+    theta = HOME.theta;
+    phi = HOME.phi;
     radius = state.size * 3.2;
     updateCamera();
   }
+
   function updateCamera() {
-    camera.position.set(
-      radius * Math.sin(phi) * Math.sin(theta),
-      radius * Math.cos(phi),
-      radius * Math.sin(phi) * Math.cos(theta),
+    const dir = new THREE.Vector3(
+      Math.sin(phi) * Math.sin(theta),
+      Math.cos(phi),
+      Math.sin(phi) * Math.cos(theta),
     );
+    camera.position.copy(dir).multiplyScalar(radius);
     camera.lookAt(0, 0, 0);
+    cubeCamera.position.copy(dir).multiplyScalar(3.4);
+    cubeCamera.lookAt(0, 0, 0);
   }
+
+  // Smoothly move the camera to a new angle, taking the short way round.
+  function animateTo(toTheta, toPhi) {
+    const dTheta = ((((toTheta - theta) % (2 * Math.PI)) + 3 * Math.PI) % (2 * Math.PI)) - Math.PI;
+    anim = {
+      fromTheta: theta, fromPhi: phi,
+      dTheta, dPhi: clamp(toPhi, PHI_MIN, PHI_MAX) - phi,
+      start: performance.now(), duration: 450,
+    };
+  }
+
+  function stepAnimation(now) {
+    if (!anim) return;
+    const t = Math.min(1, (now - anim.start) / anim.duration);
+    const e = t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
+    theta = anim.fromTheta + anim.dTheta * e;
+    phi = anim.fromPhi + anim.dPhi * e;
+    if (t === 1) anim = null;
+    updateCamera();
+  }
+
+  const snapQuarter = (a) => Math.round(a / QUARTER) * QUARTER;
+
+  // Look at the model from the direction of vector v (from the centre outwards).
+  function viewFrom(v) {
+    const d = new THREE.Vector3(v[0], v[1], v[2]).normalize();
+    const toPhi = Math.acos(clamp(d.y, -1, 1));
+    const toTheta = Math.abs(d.x) < 1e-6 && Math.abs(d.z) < 1e-6 ? snapQuarter(theta) : Math.atan2(d.x, d.z);
+    animateTo(toTheta, toPhi);
+  }
+
+  function setSpinning(on) {
+    spinning = on;
+    const btn = $('spin');
+    btn.setAttribute('aria-pressed', String(on));
+    btn.textContent = on ? '❚❚ Stop' : '▶ Spin';
+  }
+
+  // ---------- View cube ----------
+  const cubeRenderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+  cubeRenderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+  cubeRenderer.setSize(120, 120);
+  $('viewcubeHost').appendChild(cubeRenderer.domElement);
+  const cubeCanvas = cubeRenderer.domElement;
+
+  const cubeScene = new THREE.Scene();
+  const cubeCamera = new THREE.PerspectiveCamera(30, 1, 0.1, 20);
+
+  function labelTexture(text) {
+    const c = document.createElement('canvas');
+    c.width = c.height = 128;
+    const g = c.getContext('2d');
+    g.fillStyle = '#2a2f3d';
+    g.fillRect(0, 0, 128, 128);
+    g.strokeStyle = '#5a6070';
+    g.lineWidth = 4;
+    g.strokeRect(2, 2, 124, 124);
+    g.fillStyle = '#e8eaf0';
+    g.font = 'bold 26px system-ui, -apple-system, sans-serif';
+    g.textAlign = 'center';
+    g.textBaseline = 'middle';
+    g.fillText(text, 64, 66);
+    const tex = new THREE.CanvasTexture(c);
+    tex.anisotropy = 4;
+    return tex;
+  }
+  // BoxGeometry face order: +x, -x, +y, -y, +z, -z
+  const viewCube = new THREE.Mesh(
+    new THREE.BoxGeometry(1, 1, 1),
+    ['RIGHT', 'LEFT', 'TOP', 'BOTTOM', 'FRONT', 'BACK']
+      .map((t) => new THREE.MeshBasicMaterial({ map: labelTexture(t) })),
+  );
+  cubeScene.add(viewCube);
+
+  // Little axis stubs from the cube's back-left-bottom corner, matching the main view.
+  const cubeAxes = new THREE.AxesHelper(1.25);
+  cubeAxes.position.set(-0.5, -0.5, -0.5);
+  cubeScene.add(cubeAxes);
+
+  const cubeHighlight = new THREE.Mesh(
+    new THREE.BoxGeometry(1, 1, 1),
+    new THREE.MeshBasicMaterial({ color: 0x4f8cff, transparent: true, opacity: 0.55, depthWrite: false }),
+  );
+  cubeHighlight.visible = false;
+  cubeScene.add(cubeHighlight);
+
+  // Which face / edge / corner region is under the pointer, as a direction like [1, 0, 1].
+  function pickCubeRegion(e) {
+    const r = cubeCanvas.getBoundingClientRect();
+    ndc.set(((e.clientX - r.left) / r.width) * 2 - 1, -((e.clientY - r.top) / r.height) * 2 + 1);
+    raycaster.setFromCamera(ndc, cubeCamera);
+    const hit = raycaster.intersectObject(viewCube, false)[0];
+    if (!hit) return null;
+    const p = hit.point;
+    return [p.x, p.y, p.z].map((v) => (Math.abs(v) > 0.3 ? Math.sign(v) : 0));
+  }
+
+  function showCubeHighlight(region) {
+    cubeHighlight.visible = !!region;
+    cubeCanvas.classList.toggle('pointing', !!region);
+    if (!region) return;
+    // Region sits on the surface: thin along the axes it points to, wide along the others.
+    cubeHighlight.scale.set(...region.map((d) => (d ? 0.22 : 0.62)));
+    cubeHighlight.position.set(...region.map((d) => d * 0.4));
+  }
+
+  let cubeDrag = null;
+  cubeCanvas.addEventListener('pointerdown', (e) => {
+    cubeDrag = { x: e.clientX, y: e.clientY, moved: false };
+    cubeCanvas.setPointerCapture(e.pointerId);
+  });
+  cubeCanvas.addEventListener('pointermove', (e) => {
+    if (!cubeDrag) { showCubeHighlight(pickCubeRegion(e)); return; }
+    const dx = e.clientX - cubeDrag.x;
+    const dy = e.clientY - cubeDrag.y;
+    if (!cubeDrag.moved && Math.hypot(dx, dy) > 3) cubeDrag.moved = true;
+    if (cubeDrag.moved) {
+      anim = null;
+      theta -= dx * 0.012;
+      phi = clamp(phi - dy * 0.012, PHI_MIN, PHI_MAX);
+      cubeDrag.x = e.clientX;
+      cubeDrag.y = e.clientY;
+      showCubeHighlight(null);
+      updateCamera();
+    }
+  });
+  cubeCanvas.addEventListener('pointerup', (e) => {
+    if (cubeDrag && !cubeDrag.moved) {
+      const region = pickCubeRegion(e);
+      if (region) viewFrom(region);
+    }
+    cubeDrag = null;
+  });
+  cubeCanvas.addEventListener('pointercancel', () => { cubeDrag = null; });
+  cubeCanvas.addEventListener('pointerleave', () => { if (!cubeDrag) showCubeHighlight(null); });
 
   function resize() {
     const w = viewport.clientWidth;
@@ -302,10 +451,21 @@
   }
   new ResizeObserver(resize).observe(viewport);
 
-  (function loop() {
+  let lastFrame = performance.now();
+  function loop(now) {
+    const dt = Math.min(100, now - lastFrame);
+    lastFrame = now;
+    if (anim) {
+      stepAnimation(now);
+    } else if (spinning && !drag && !cubeDrag) {
+      theta -= dt * 0.0006;
+      updateCamera();
+    }
     renderer.render(scene, camera);
+    cubeRenderer.render(cubeScene, cubeCamera);
     requestAnimationFrame(loop);
-  })();
+  }
+  requestAnimationFrame(loop);
 
   // ---------- 3D picking ----------
   const raycaster = new THREE.Raycaster();
@@ -381,8 +541,9 @@
     const dy = e.clientY - drag.y;
     if (!drag.moved && Math.hypot(dx, dy) > 4) drag.moved = true;
     if (drag.moved) {
+      anim = null;
       theta -= dx * 0.008;
-      phi = clamp(phi - dy * 0.008, 0.05, Math.PI - 0.05);
+      phi = clamp(phi - dy * 0.008, PHI_MIN, PHI_MAX);
       drag.x = e.clientX;
       drag.y = e.clientY;
       ghost.visible = false;
@@ -711,7 +872,16 @@
   });
   $('solo').addEventListener('change', (e) => { solo = e.target.checked; rebuildScene(); });
   $('slice').addEventListener('change', (e) => { slice = e.target.checked; rebuildScene(); });
-  $('resetView').addEventListener('click', resetView);
+  $('homeView').addEventListener('click', () => animateTo(HOME.theta, HOME.phi));
+  // Rotate by exactly 90° from wherever the camera is heading (so repeated clicks chain).
+  function rotateQuarter(dir) {
+    const baseTheta = anim ? anim.fromTheta + anim.dTheta : theta;
+    const basePhi = anim ? anim.fromPhi + anim.dPhi : phi;
+    animateTo(baseTheta + dir * QUARTER, basePhi);
+  }
+  $('rotLeft').addEventListener('click', () => rotateQuarter(1));
+  $('rotRight').addEventListener('click', () => rotateQuarter(-1));
+  $('spin').addEventListener('click', () => setSpinning(!spinning));
 
   document.addEventListener('keydown', (e) => {
     if (e.target.closest && e.target.closest('input, select, textarea')) return;

@@ -60,14 +60,21 @@
 
     <section class="stage">
       <div id="viewport"></div>
+      <div class="viewcube">
+        <div id="viewcubeHost" title="Click a face, edge or corner to snap the view · drag to rotate"></div>
+        <div class="viewcube-buttons">
+          <button id="rotLeft" title="Rotate 90° left">⟲</button>
+          <button id="homeView" title="Home view">⌂</button>
+          <button id="rotRight" title="Rotate 90° right">⟳</button>
+        </div>
+        <button id="spin" class="spin" aria-pressed="false" title="Spin the model">▶ Spin</button>
+      </div>
       <div class="stage-controls">
         <label class="field">Explode
           <input type="range" id="explode" min="0" max="1" step="0.01" value="0">
         </label>
         <label class="check"><input type="checkbox" id="solo"> Active piece only</label>
-        <label class="check"><input type="checkbox" id="slice"> Hide layers above</label>
-        <button id="resetView">Reset view</button>
-      </div>
+        <label class="check"><input type="checkbox" id="slice"> Hide layers above</label>      </div>
       <p class="stage-hint">Drag to rotate · scroll to zoom · click to add a cube · Shift-click or right-click to remove · Alt-click to pick a piece</p>
     </section>
   </main>
