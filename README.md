@@ -45,4 +45,4 @@ Browsers only allow sound after the visitor has clicked or typed on the page. If
 
 `sounds/wilhelm.mp3`: the Wilhelm scream (1951), public domain, from the [Internet Archive](https://archive.org/details/WilhelmScreamSample).
 
-`sounds/obnoxious.wav`: original, generated for this project.
+`sounds/obnoxious.wav`, `sounds/obnoxious-loud.wav`: original, generated for this project.
