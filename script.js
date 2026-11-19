@@ -1020,24 +1020,42 @@
     announceTimer = setTimeout(hideAnnouncement, ANNOUNCE_SECONDS * 1000);
   }
 
+  // Announcements this visitor had already seen before this page load.
+  const seenBeforeLoad = new Set(seenIds());
+
+  // Show one announcement if it's valid, in its time window, and not seen yet.
+  async function maybeShow(a, onPageOpen) {
+    if (!a || !a.id || typeof a.message !== 'string' || !a.message.trim()) return;
+    if (!(Date.parse(a.showUntil) > Date.now())) return;
+    if (a.onOpenOnly === true && !onPageOpen) return;
+    if (shownThisSession.has(a.id) || seenIds().includes(a.id)) return;
+    markSeen(a.id);
+    // Load the image before showing anything, so the picture, banner and sound land together.
+    const hasImage = typeof a.image === 'string' && await loadImage(a.image);
+    showAnnouncement(a.message.trim().slice(0, 280));
+    if (hasImage) showScare();
+    if (typeof a.sound === 'string') playAnnouncementSound(a.sound);
+  }
+
   // onPageOpen is true only for the check made when the page first loads.
   // Announcements posted with --on-open are only shown on that first check.
+  //
+  // An announcement can carry a followUp: it's shown when the page is opened by
+  // someone who had already seen the main announcement before this load
+  // (e.g. main: "Everyone reload the page!" → followUp: a surprise on reload).
   async function checkAnnouncement(onPageOpen = false) {
     if (location.protocol === 'file:') return; // only works when served from a website
     try {
       const res = await fetch(`announcement.json?t=${Date.now()}`, { cache: 'no-store' });
       if (!res.ok) return;
       const a = await res.json();
-      if (!a || !a.id || typeof a.message !== 'string' || !a.message.trim()) return;
-      if (!(Date.parse(a.showUntil) > Date.now())) return;
-      if (a.onOpenOnly === true && !onPageOpen) return;
-      if (shownThisSession.has(a.id) || seenIds().includes(a.id)) return;
-      markSeen(a.id);
-      // Load the image before showing anything, so the picture, banner and sound land together.
-      const hasImage = typeof a.image === 'string' && await loadImage(a.image);
-      showAnnouncement(a.message.trim().slice(0, 280));
-      if (hasImage) showScare();
-      if (typeof a.sound === 'string') playAnnouncementSound(a.sound);
+      if (!a || typeof a !== 'object') return;
+      const f = a.followUp;
+      if (onPageOpen && f && typeof f === 'object' && seenBeforeLoad.has(a.id)) {
+        await maybeShow({ ...f, showUntil: a.showUntil, onOpenOnly: false }, true);
+      } else {
+        await maybeShow(a, onPageOpen);
+      }
     } catch { /* offline or bad file: ignore */ }
   }
 

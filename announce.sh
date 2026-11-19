@@ -7,6 +7,9 @@
 #                                                   # not pushed live to tabs already open
 #   ./announce.sh --sound wilhelm "AAAAH!"          # also play sounds/wilhelm.mp3
 #   ./announce.sh --image scare "boo"               # pop images/scare.jpg up full screen (1.5s)
+#   ./announce.sh --then-image scare "Everyone reload the page!"
+#                                                   # follow-up shown after people who saw
+#                                                   # this reload (also --then "msg", --then-sound)
 #   ./announce.sh --clear                           # remove the current announcement
 #
 # Each visitor sees an announcement once, for 10 seconds. People with the site
@@ -15,7 +18,7 @@
 set -euo pipefail
 cd "$(dirname "$0")"
 
-usage() { sed -n '2,14p' "$0" | sed 's/^# \{0,1\}//'; exit 1; }
+usage() { sed -n '2,17p' "$0" | sed 's/^# \{0,1\}//'; exit 1; }
 die() { echo "$1" >&2; exit 1; }
 
 # find_asset <folder> <name> <ext...>: print folder/name.ext for the first that exists.
@@ -35,11 +38,17 @@ else
   on_open=false
   sound=""
   image=""
+  then_msg=""
+  then_sound=""
+  then_image=""
   while [[ "${1:-}" == --* ]]; do
     case "$1" in
       --on-open) on_open=true; shift ;;
       --sound) sound=$(find_asset sounds "${2:-}" mp3 ogg wav); shift 2 ;;
       --image) image=$(find_asset images "${2:-}" jpg jpeg png gif webp); shift 2 ;;
+      --then) then_msg="${2:-}"; [[ -n "${then_msg// }" ]] || die "--then needs a message"; shift 2 ;;
+      --then-sound) then_sound=$(find_asset sounds "${2:-}" mp3 ogg wav); shift 2 ;;
+      --then-image) then_image=$(find_asset images "${2:-}" jpg jpeg png gif webp); shift 2 ;;
       *) usage ;;
     esac
   done
@@ -60,9 +69,17 @@ else
     --argjson onOpenOnly "$on_open" \
     --arg sound "$sound" \
     --arg image "$image" \
+    --arg thenMsg "$then_msg" \
+    --arg thenSound "$then_sound" \
+    --arg thenImage "$then_image" \
     '{id: $id, message: $message, postedAt: $postedAt, showUntil: $showUntil, onOpenOnly: $onOpenOnly}
      + (if $sound == "" then {} else {sound: $sound} end)
-     + (if $image == "" then {} else {image: $image} end)' > announcement.json
+     + (if $image == "" then {} else {image: $image} end)
+     + (if $thenMsg == "" and $thenSound == "" and $thenImage == "" then {} else
+         {followUp: ({id: ($id + "-then"), message: (if $thenMsg == "" then "👀" else $thenMsg end)}
+           + (if $thenSound == "" then {} else {sound: $thenSound} end)
+           + (if $thenImage == "" then {} else {image: $thenImage} end))}
+       end)' > announcement.json
   commit_msg="Announcement: $message"
 fi
 
