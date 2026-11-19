@@ -219,6 +219,15 @@ input[type="range"] { accent-color: var(--accent); }
 .announcement p { flex: 1; margin: 0; font-size: 15px; line-height: 1.4; overflow-wrap: anywhere; }
 .announcement button { border: none; background: transparent; font-size: 18px; padding: 0 6px; color: var(--muted); }
 .announcement button:hover { color: var(--text); }
+.announcement .announcement-sound {
+  font-size: 15px;
+  padding: 4px 8px;
+  border: 1px solid var(--accent);
+  border-radius: 6px;
+  animation: sound-pulse 1s ease-in-out infinite alternate;
+}
+.announcement .announcement-sound[hidden] { display: none; }
+@keyframes sound-pulse { to { background: rgba(79, 140, 255, .35); } }
 .announcement-timer {
   position: absolute;
   left: 0;

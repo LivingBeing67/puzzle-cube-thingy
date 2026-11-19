@@ -923,8 +923,40 @@
     } catch { /* storage unavailable */ }
   }
 
+  // ----- Announcement sounds -----
+  // Only files in sounds/ can be played. Browsers block audio until the visitor has
+  // clicked or typed on the page, so if playback is refused we show a 🔊 button and
+  // also play on the visitor's next click or key press while the banner is up.
+  const SOUND_RE = /^sounds\/[a-z0-9_-]+\.(mp3|ogg|wav)$/i;
+  const soundBtn = $('announcementSound');
+  let pendingAudio = null;
+
+  function playPending() {
+    if (!pendingAudio) return;
+    const audio = pendingAudio;
+    pendingAudio = null;
+    soundBtn.hidden = true;
+    audio.play().catch(() => {});
+  }
+
+  function playAnnouncementSound(src) {
+    pendingAudio = null;
+    soundBtn.hidden = true;
+    if (!SOUND_RE.test(src)) return;
+    const audio = new Audio(src);
+    audio.play().catch(() => {
+      pendingAudio = audio;
+      soundBtn.hidden = false;
+    });
+  }
+
+  soundBtn.addEventListener('click', playPending);
+  window.addEventListener('pointerdown', playPending, true);
+  window.addEventListener('keydown', playPending, true);
+
   function hideAnnouncement() {
     clearTimeout(announceTimer);
+    pendingAudio = null;
     if (announceEl.hidden) return;
     announceEl.classList.add('leaving');
     setTimeout(() => {
@@ -934,6 +966,8 @@
   }
 
   function showAnnouncement(message) {
+    pendingAudio = null;
+    soundBtn.hidden = true;
     announceText.textContent = message;
     announceEl.style.setProperty('--announce-seconds', `${ANNOUNCE_SECONDS}s`);
     announceEl.classList.remove('leaving');
@@ -961,6 +995,7 @@
       if (shownThisSession.has(a.id) || seenIds().includes(a.id)) return;
       markSeen(a.id);
       showAnnouncement(a.message.trim().slice(0, 280));
+      if (typeof a.sound === 'string') playAnnouncementSound(a.sound);
     } catch { /* offline or bad file: ignore */ }
   }
 

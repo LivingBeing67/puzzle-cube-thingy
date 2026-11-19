@@ -20,10 +20,13 @@ Show a 10-second banner to everyone using the live site:
 ./announce.sh "New 5x5x5 example is up!"     # new visitors see it for the next 30 min
 ./announce.sh "Maintenance at 6pm" 120        # ...or for the next 120 min
 ./announce.sh --on-open "Hi!"                 # only when someone opens the site, not live
+./announce.sh --sound wilhelm "AAAAH!"        # play a sound from sounds/ too
 ./announce.sh --clear                         # take it down
 ```
 
 The script writes `announcement.json`, commits and pushes it, and Vercel and GitHub Pages redeploy. People with the site open see the banner within about 10 seconds of the deploy finishing. Each person sees each announcement once.
+
+Browsers only allow sound after the visitor has clicked or typed on the page. If the sound is blocked, the banner shows a 🔊 button, and the sound plays on their next click or key press.
 
 ## Shortcuts
 
@@ -33,3 +36,7 @@ The script writes `announcement.json`, commits and pushes it, and Vercel and Git
 | `1`–`9` | Select piece |
 | `N` | New piece |
 | Ctrl/Cmd+Z, Ctrl/Cmd+Shift+Z | Undo / redo |
+
+## Credits
+
+`sounds/wilhelm.mp3`: the Wilhelm scream (1951), public domain, from the [Internet Archive](https://archive.org/details/WilhelmScreamSample).
