@@ -1,12 +1,7 @@
 {
-  "id": "1795111466",
-  "message": "🔄 Everyone reload the page!",
-  "postedAt": "2026-11-19T18:04:26Z",
-  "showUntil": "2026-11-19T18:34:26Z",
-  "onOpenOnly": false,
-  "followUp": {
-    "id": "1795111466-then",
-    "message": "👀",
-    "image": "images/scare.jpg"
-  }
+  "id": "1795111653",
+  "message": "hi guys larry here",
+  "postedAt": "2026-11-19T18:07:33Z",
+  "showUntil": "2026-11-19T18:37:33Z",
+  "onOpenOnly": false
 }
