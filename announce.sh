@@ -6,6 +6,7 @@
 #   ./announce.sh --on-open "Hi!"                   # only shown when someone opens the site,
 #                                                   # not pushed live to tabs already open
 #   ./announce.sh --sound wilhelm "AAAAH!"          # also play sounds/wilhelm.mp3
+#   ./announce.sh --image scare "boo"               # pop images/scare.jpg up full screen (1.5s)
 #   ./announce.sh --clear                           # remove the current announcement
 #
 # Each visitor sees an announcement once, for 10 seconds. People with the site
@@ -14,8 +15,18 @@
 set -euo pipefail
 cd "$(dirname "$0")"
 
-usage() { sed -n '2,13p' "$0" | sed 's/^# \{0,1\}//'; exit 1; }
+usage() { sed -n '2,14p' "$0" | sed 's/^# \{0,1\}//'; exit 1; }
 die() { echo "$1" >&2; exit 1; }
+
+# find_asset <folder> <name> <ext...>: print folder/name.ext for the first that exists.
+find_asset() {
+  local dir="$1" name="$2"; shift 2
+  [[ "$name" =~ ^[a-zA-Z0-9_-]+$ ]] || die "Usage: --${dir%s} <name>  (a file in $dir/)"
+  for ext in "$@"; do
+    if [[ -f "$dir/$name.$ext" ]]; then echo "$dir/$name.$ext"; return; fi
+  done
+  die "No ${dir%s} called '$name' in $dir/. Available: $(ls "$dir" 2>/dev/null | sed 's/\.[^.]*$//' | tr '\n' ' ')"
+}
 
 if [[ "${1:-}" == "--clear" ]]; then
   jq -n '{id: "", message: "", postedAt: null, showUntil: null}' > announcement.json
@@ -23,17 +34,12 @@ if [[ "${1:-}" == "--clear" ]]; then
 else
   on_open=false
   sound=""
+  image=""
   while [[ "${1:-}" == --* ]]; do
     case "$1" in
       --on-open) on_open=true; shift ;;
-      --sound)
-        name="${2:-}"
-        [[ "$name" =~ ^[a-zA-Z0-9_-]+$ ]] || die "Usage: --sound <name>  (a file in sounds/, e.g. wilhelm)"
-        for ext in mp3 ogg wav; do
-          if [[ -f "sounds/$name.$ext" ]]; then sound="sounds/$name.$ext"; break; fi
-        done
-        [[ -n "$sound" ]] || die "No sound called '$name' in sounds/. Available: $(ls sounds 2>/dev/null | sed 's/\.[^.]*$//' | tr '\n' ' ')"
-        shift 2 ;;
+      --sound) sound=$(find_asset sounds "${2:-}" mp3 ogg wav); shift 2 ;;
+      --image) image=$(find_asset images "${2:-}" jpg jpeg png gif webp); shift 2 ;;
       *) usage ;;
     esac
   done
@@ -53,8 +59,10 @@ else
     --arg showUntil "$(iso $((now + minutes * 60)))" \
     --argjson onOpenOnly "$on_open" \
     --arg sound "$sound" \
+    --arg image "$image" \
     '{id: $id, message: $message, postedAt: $postedAt, showUntil: $showUntil, onOpenOnly: $onOpenOnly}
-     + (if $sound == "" then {} else {sound: $sound} end)' > announcement.json
+     + (if $sound == "" then {} else {sound: $sound} end)
+     + (if $image == "" then {} else {image: $image} end)' > announcement.json
   commit_msg="Announcement: $message"
 fi
 

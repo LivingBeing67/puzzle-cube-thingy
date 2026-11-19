@@ -954,6 +954,45 @@
   window.addEventListener('pointerdown', playPending, true);
   window.addEventListener('keydown', playPending, true);
 
+  // ----- Announcement images -----
+  // Only files in images/ can be shown. The image is loaded first, then pops up
+  // full screen once for SCARE_MS and fades out. Click to dismiss early.
+  const IMAGE_RE = /^images\/[a-z0-9_-]+\.(jpe?g|png|gif|webp)$/i;
+  const SCARE_MS = 1500;
+  const scareEl = $('scare');
+  const scareImg = $('scareImg');
+  let scareTimer = null;
+
+  function hideScare() {
+    clearTimeout(scareTimer);
+    if (scareEl.hidden || scareEl.classList.contains('leaving')) return;
+    scareEl.classList.add('leaving');
+    setTimeout(() => {
+      scareEl.hidden = true;
+      scareEl.classList.remove('leaving');
+    }, 350);
+  }
+
+  async function loadImage(src) {
+    if (!IMAGE_RE.test(src)) return false;
+    try {
+      scareImg.src = src;
+      await scareImg.decode();
+      return true;
+    } catch {
+      return false;
+    }
+  }
+
+  function showScare() {
+    scareEl.classList.remove('leaving');
+    scareEl.hidden = false;
+    clearTimeout(scareTimer);
+    scareTimer = setTimeout(hideScare, SCARE_MS);
+  }
+
+  scareEl.addEventListener('click', hideScare);
+
   function hideAnnouncement() {
     clearTimeout(announceTimer);
     pendingAudio = null;
@@ -994,7 +1033,10 @@
       if (a.onOpenOnly === true && !onPageOpen) return;
       if (shownThisSession.has(a.id) || seenIds().includes(a.id)) return;
       markSeen(a.id);
+      // Load the image before showing anything, so the picture, banner and sound land together.
+      const hasImage = typeof a.image === 'string' && await loadImage(a.image);
       showAnnouncement(a.message.trim().slice(0, 280));
+      if (hasImage) showScare();
       if (typeof a.sound === 'string') playAnnouncementSound(a.sound);
     } catch { /* offline or bad file: ignore */ }
   }

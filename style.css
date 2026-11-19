@@ -242,6 +242,30 @@ input[type="range"] { accent-color: var(--accent); }
 @keyframes announce-out { to { opacity: 0; transform: translate(-50%, -12px); } }
 @keyframes announce-timer { to { transform: scaleX(0); } }
 
+/* Full-screen announcement image: a single pop-in, then fade out (no strobing). */
+.scare {
+  position: fixed;
+  inset: 0;
+  z-index: 200;
+  display: grid;
+  place-items: center;
+  background: #000;
+  cursor: pointer;
+}
+.scare[hidden] { display: none; }
+.scare img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  animation: scare-pop .12s ease-out;
+}
+.scare.leaving { animation: scare-out .35s ease-in forwards; }
+@keyframes scare-pop { from { transform: scale(.55); } }
+@keyframes scare-out { to { opacity: 0; } }
+@media (prefers-reduced-motion: reduce) {
+  .scare img { animation: none; }
+}
+
 @media (max-width: 800px) {
   html, body { height: auto; }
   .layout { flex: none; grid-template-columns: 1fr; grid-template-rows: 60vh auto; }

@@ -21,6 +21,7 @@ Show a 10-second banner to everyone using the live site:
 ./announce.sh "Maintenance at 6pm" 120        # ...or for the next 120 min
 ./announce.sh --on-open "Hi!"                 # only when someone opens the site, not live
 ./announce.sh --sound wilhelm "AAAAH!"        # play a sound from sounds/ too
+./announce.sh --image scare "boo"             # pop an image from images/ up full screen for 1.5s
 ./announce.sh --clear                         # take it down
 ```
 
