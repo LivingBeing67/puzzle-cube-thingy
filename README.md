@@ -22,7 +22,7 @@ Show a 10-second banner to everyone using the live site:
 ./announce.sh --clear                         # take it down
 ```
 
-The script writes `announcement.json`, commits and pushes it, and Vercel and GitHub Pages redeploy. People with the site open see the banner within about a minute. Each person sees each announcement once.
+The script writes `announcement.json`, commits and pushes it, and Vercel and GitHub Pages redeploy. People with the site open see the banner within about 10 seconds of the deploy finishing. Each person sees each announcement once.
 
 ## Shortcuts
 

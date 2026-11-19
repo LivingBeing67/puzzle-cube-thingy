@@ -904,7 +904,7 @@
   // Each announcement shows once per visitor, for ANNOUNCE_SECONDS, while it's
   // still inside its showUntil window.
   const ANNOUNCE_SECONDS = 10;
-  const POLL_MS = 30000;
+  const POLL_MS = 10000;
   const SEEN_KEY = 'puzzle-cube-thingy:seen-announcements';
   const announceEl = $('announcement');
   const announceText = $('announcementText');
@@ -964,7 +964,9 @@
   $('announcementClose').addEventListener('click', hideAnnouncement);
   checkAnnouncement();
   setInterval(() => { if (!document.hidden) checkAnnouncement(); }, POLL_MS);
+  // Browsers slow down timers in background tabs, so check right away on return.
   document.addEventListener('visibilitychange', () => { if (!document.hidden) checkAnnouncement(); });
+  window.addEventListener('focus', checkAnnouncement);
 
   refresh();
   resize();

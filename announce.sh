@@ -6,7 +6,7 @@
 #   ./announce.sh --clear                           # remove the current announcement
 #
 # Each visitor sees an announcement once, for 10 seconds. People with the site
-# open pick it up within ~30s of the deploy finishing (about a minute total).
+# open pick it up within ~10s of the deploy finishing (about a minute total).
 set -euo pipefail
 cd "$(dirname "$0")"
 
