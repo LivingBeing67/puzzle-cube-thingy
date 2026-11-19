@@ -1,8 +1,8 @@
 {
-  "id": "1795113814",
-  "message": "",
-  "postedAt": "2026-11-19T18:43:34Z",
-  "showUntil": "2026-11-19T19:13:34Z",
+  "id": "1795113910",
+  "message": "📢📢📢",
+  "postedAt": "2026-11-19T18:45:10Z",
+  "showUntil": "2026-11-19T19:15:10Z",
   "onOpenOnly": false,
-  "speak": "space nerd space nerd"
+  "sound": "sounds/obnoxious-loud.wav"
 }
