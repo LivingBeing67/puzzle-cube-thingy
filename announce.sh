@@ -15,6 +15,7 @@
 #                                                   # message is also given)
 #   ./announce.sh --speak "space nerd"              # say it in an evil voice (no banner
 #                                                   # unless a message is also given)
+#   ./announce.sh --youtube "https://youtu.be/ID"   # small corner player, plays once, then goes
 #   ./announce.sh --clear                           # remove the current announcement
 #
 # Each visitor sees an announcement once, for 10 seconds. People with the site
@@ -23,7 +24,7 @@
 set -euo pipefail
 cd "$(dirname "$0")"
 
-usage() { sed -n '2,22p' "$0" | sed 's/^# \{0,1\}//'; exit 1; }
+usage() { sed -n '2,23p' "$0" | sed 's/^# \{0,1\}//'; exit 1; }
 die() { echo "$1" >&2; exit 1; }
 
 # find_asset <folder> <name> <ext...>: print folder/name.ext for the first that exists.
@@ -47,6 +48,7 @@ else
   visitor=""
   say=""
   speak=""
+  youtube=""
   then_sound=""
   then_image=""
   while [[ "${1:-}" == --* ]]; do
@@ -60,13 +62,19 @@ else
       --visitor) visitor=$(find_asset images "${2:-}" jpg jpeg png gif webp); shift 2 ;;
       --say) say="${2:-}"; [[ -n "${say// }" ]] || die "--say needs some text"; (( ${#say} <= 140 )) || die "--say text must be 140 characters or less"; shift 2 ;;
       --speak) speak="${2:-}"; [[ -n "${speak// }" ]] || die "--speak needs some text"; (( ${#speak} <= 200 )) || die "--speak text must be 200 characters or less"; shift 2 ;;
+      --youtube)
+        url="${2:-}"
+        if [[ "$url" =~ (v=|youtu\.be/|/embed/|/shorts/)([A-Za-z0-9_-]{11}) ]]; then youtube="${BASH_REMATCH[2]}"
+        elif [[ "$url" =~ ^[A-Za-z0-9_-]{11}$ ]]; then youtube="$url"
+        else die "Couldn't find a YouTube video ID in: $url"; fi
+        shift 2 ;;
       *) usage ;;
     esac
   done
 
   message="${1:-}"
   minutes="${2:-30}"
-  [[ -n "${message// }" || -n "$visitor" || -n "$speak" ]] || usage
+  [[ -n "${message// }" || -n "$visitor" || -n "$speak" || -n "$youtube" ]] || usage
   [[ "$minutes" =~ ^[0-9]+$ && "$minutes" -gt 0 ]] || die "Minutes must be a positive whole number."
   (( ${#message} <= 280 )) || die "Message is ${#message} characters; keep it to 280."
 
@@ -84,6 +92,7 @@ else
     --arg visitor "$visitor" \
     --arg say "$say" \
     --arg speak "$speak" \
+    --arg youtube "$youtube" \
     --arg thenSound "$then_sound" \
     --arg thenImage "$then_image" \
     '{id: $id, message: $message, postedAt: $postedAt, showUntil: $showUntil, onOpenOnly: $onOpenOnly}
@@ -92,12 +101,13 @@ else
      + (if $visitor == "" then {} else {visitor: $visitor} end)
      + (if $say == "" then {} else {say: $say} end)
      + (if $speak == "" then {} else {speak: $speak} end)
+     + (if $youtube == "" then {} else {youtube: $youtube} end)
      + (if $thenMsg == "" and $thenSound == "" and $thenImage == "" then {} else
          {followUp: ({id: ($id + "-then"), message: (if $thenMsg == "" then "👀" else $thenMsg end)}
            + (if $thenSound == "" then {} else {sound: $thenSound} end)
            + (if $thenImage == "" then {} else {image: $thenImage} end))}
        end)' > announcement.json
-  commit_msg="Announcement: ${message:-${say:-${speak:-visitor}}}"
+  commit_msg="Announcement: ${message:-${say:-${speak:-${youtube:+youtube $youtube}}}}"
 fi
 
 git add announcement.json

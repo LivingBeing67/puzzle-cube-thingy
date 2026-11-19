@@ -25,6 +25,7 @@ Show a 10-second banner to everyone using the live site:
 ./announce.sh --then-image scare "Everyone reload the page!"   # surprise after they reload
 ./announce.sh --visitor larry --say "hi"      # images/larry.* slides in, spins, says it, leaves
 ./announce.sh --speak "space nerd"            # evil text-to-speech voice, no banner
+./announce.sh --youtube "https://youtu.be/ID" # small corner YouTube player, plays once
 ./announce.sh --clear                         # take it down
 ```
 

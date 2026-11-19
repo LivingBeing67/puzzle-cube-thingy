@@ -973,6 +973,77 @@
     }, 350);
   }
 
+  // ----- YouTube player -----
+  // A small, always-visible player in the corner (YouTube requires embeds to be
+  // visible and at least 200px tall). It plays once and removes itself when the
+  // video ends. Browsers only allow sound after the visitor has interacted with
+  // the page, so if they haven't, it starts muted and restarts from the beginning
+  // with sound on their first click or key press.
+  const YT_ID_RE = /^[A-Za-z0-9_-]{11}$/;
+  const YT_FALLBACK_MS = 15 * 60 * 1000; // safety net in case the "ended" event never arrives
+  let ytFrame = null;
+  let ytMuted = false;
+  let ytTimer = null;
+
+  function ytCommand(func, args = []) {
+    if (ytFrame && ytFrame.contentWindow) {
+      ytFrame.contentWindow.postMessage(JSON.stringify({ event: 'command', func, args }), '*');
+    }
+  }
+
+  function removeYouTube() {
+    clearTimeout(ytTimer);
+    if (ytFrame) ytFrame.parentElement.remove();
+    ytFrame = null;
+    ytMuted = false;
+  }
+
+  function showYouTube(id) {
+    if (!YT_ID_RE.test(id)) return;
+    removeYouTube();
+    const canPlaySound = !!(navigator.userActivation && navigator.userActivation.hasBeenActive);
+    ytMuted = !canPlaySound;
+    const params = new URLSearchParams({
+      autoplay: '1', mute: ytMuted ? '1' : '0', enablejsapi: '1',
+      playsinline: '1', rel: '0', origin: location.origin,
+    });
+    const wrap = document.createElement('div');
+    wrap.className = 'yt-player';
+    const frame = document.createElement('iframe');
+    frame.src = `https://www.youtube-nocookie.com/embed/${id}?${params}`;
+    frame.allow = 'autoplay; encrypted-media; picture-in-picture';
+    frame.title = 'YouTube video player';
+    // Ask the player to send us state changes, so we know when it ends.
+    frame.addEventListener('load', () => {
+      frame.contentWindow.postMessage(JSON.stringify({ event: 'listening', id: 'pct', channel: 'widget' }), '*');
+    });
+    wrap.appendChild(frame);
+    document.body.appendChild(wrap);
+    ytFrame = frame;
+    ytTimer = setTimeout(removeYouTube, YT_FALLBACK_MS);
+  }
+
+  window.addEventListener('message', (e) => {
+    if (!ytFrame || e.source !== ytFrame.contentWindow) return;
+    let d;
+    try { d = typeof e.data === 'string' ? JSON.parse(e.data) : e.data; } catch { return; }
+    if (!d) return;
+    const state = d.event === 'onStateChange' ? d.info
+      : d.event === 'infoDelivery' && d.info && typeof d.info.playerState === 'number' ? d.info.playerState
+        : null;
+    if (state === 0) removeYouTube(); // 0 = ended
+  });
+
+  function ytUnmuteOnGesture() {
+    if (!ytFrame || !ytMuted) return;
+    ytMuted = false;
+    ytCommand('seekTo', [0, true]);
+    ytCommand('unMute');
+    ytCommand('playVideo');
+  }
+  window.addEventListener('pointerdown', ytUnmuteOnGesture, true);
+  window.addEventListener('keydown', ytUnmuteOnGesture, true);
+
   async function loadImage(src, img = scareImg) {
     if (!IMAGE_RE.test(src)) return false;
     try {
@@ -1081,7 +1152,8 @@
     const message = typeof a.message === 'string' ? a.message.trim().slice(0, 280) : '';
     const say = typeof a.say === 'string' ? a.say.trim().slice(0, 140) : '';
     const spoken = typeof a.speak === 'string' ? a.speak.trim().slice(0, 200) : '';
-    if (!message && !spoken && typeof a.visitor !== 'string') return;
+    const youtube = typeof a.youtube === 'string' && YT_ID_RE.test(a.youtube) ? a.youtube : '';
+    if (!message && !spoken && !youtube && typeof a.visitor !== 'string') return;
     if (!(Date.parse(a.showUntil) > Date.now())) return;
     if (a.onOpenOnly === true && !onPageOpen) return;
     if (shownThisSession.has(a.id) || seenIds().includes(a.id)) return;
@@ -1094,6 +1166,7 @@
     if (hasVisitor) showVisitor(say);
     if (typeof a.sound === 'string') playAnnouncementSound(a.sound);
     if (spoken) speak(spoken);
+    if (youtube) showYouTube(youtube);
   }
 
   // onPageOpen is true only for the check made when the page first loads.
