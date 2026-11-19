@@ -899,6 +899,73 @@
     }
   });
 
+  // ---------- Announcements ----------
+  // announcement.json is updated by ./announce.sh and deployed with the site.
+  // Each announcement shows once per visitor, for ANNOUNCE_SECONDS, while it's
+  // still inside its showUntil window.
+  const ANNOUNCE_SECONDS = 10;
+  const POLL_MS = 30000;
+  const SEEN_KEY = 'puzzle-cube-thingy:seen-announcements';
+  const announceEl = $('announcement');
+  const announceText = $('announcementText');
+  const shownThisSession = new Set();
+  let announceTimer = null;
+
+  function seenIds() {
+    try { return JSON.parse(localStorage.getItem(SEEN_KEY)) || []; } catch { return []; }
+  }
+  function markSeen(id) {
+    shownThisSession.add(id);
+    try {
+      const ids = seenIds().filter((x) => x !== id);
+      ids.push(id);
+      localStorage.setItem(SEEN_KEY, JSON.stringify(ids.slice(-20)));
+    } catch { /* storage unavailable */ }
+  }
+
+  function hideAnnouncement() {
+    clearTimeout(announceTimer);
+    if (announceEl.hidden) return;
+    announceEl.classList.add('leaving');
+    setTimeout(() => {
+      announceEl.hidden = true;
+      announceEl.classList.remove('leaving');
+    }, 300);
+  }
+
+  function showAnnouncement(message) {
+    announceText.textContent = message;
+    announceEl.style.setProperty('--announce-seconds', `${ANNOUNCE_SECONDS}s`);
+    announceEl.classList.remove('leaving');
+    announceEl.hidden = false;
+    // Restart the countdown bar animation.
+    const bar = announceEl.querySelector('.announcement-timer');
+    bar.style.animation = 'none';
+    void bar.offsetWidth;
+    bar.style.animation = '';
+    clearTimeout(announceTimer);
+    announceTimer = setTimeout(hideAnnouncement, ANNOUNCE_SECONDS * 1000);
+  }
+
+  async function checkAnnouncement() {
+    if (location.protocol === 'file:') return; // only works when served from a website
+    try {
+      const res = await fetch(`announcement.json?t=${Date.now()}`, { cache: 'no-store' });
+      if (!res.ok) return;
+      const a = await res.json();
+      if (!a || !a.id || typeof a.message !== 'string' || !a.message.trim()) return;
+      if (!(Date.parse(a.showUntil) > Date.now())) return;
+      if (shownThisSession.has(a.id) || seenIds().includes(a.id)) return;
+      markSeen(a.id);
+      showAnnouncement(a.message.trim().slice(0, 280));
+    } catch { /* offline or bad file: ignore */ }
+  }
+
+  $('announcementClose').addEventListener('click', hideAnnouncement);
+  checkAnnouncement();
+  setInterval(() => { if (!document.hidden) checkAnnouncement(); }, POLL_MS);
+  document.addEventListener('visibilitychange', () => { if (!document.hidden) checkAnnouncement(); });
+
   refresh();
   resize();
 })();

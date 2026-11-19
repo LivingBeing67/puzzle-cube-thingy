@@ -12,6 +12,18 @@ Open `index.html` in a browser. There's no build step; three.js loads from a CDN
 - **Validation:** shows empty cells, empty pieces, and pieces split into disconnected parts.
 - **Undo/redo, autosave** (localStorage) and **JSON export/import**.
 
+## Announcements
+
+Show a 10-second banner to everyone using the live site:
+
+```sh
+./announce.sh "New 5x5x5 example is up!"     # new visitors see it for the next 30 min
+./announce.sh "Maintenance at 6pm" 120        # ...or for the next 120 min
+./announce.sh --clear                         # take it down
+```
+
+The script writes `announcement.json`, commits and pushes it, and Vercel and GitHub Pages redeploy. People with the site open see the banner within about a minute. Each person sees each announcement once.
+
 ## Shortcuts
 
 | Key | Action |

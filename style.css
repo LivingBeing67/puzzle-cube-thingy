@@ -193,6 +193,46 @@ input[type="range"] { accent-color: var(--accent); }
   pointer-events: none;
 }
 
+/* Announcement banner */
+.announcement {
+  --announce-seconds: 10s;
+  position: fixed;
+  top: 64px;
+  left: 50%;
+  z-index: 100;
+  width: min(560px, calc(100% - 32px));
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 10px 14px 16px;
+  background: #1e3a6e;
+  border: 1px solid var(--accent);
+  border-radius: 10px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, .45);
+  overflow: hidden;
+  transform: translateX(-50%);
+  animation: announce-in .3s ease-out;
+}
+.announcement[hidden] { display: none; }
+.announcement.leaving { animation: announce-out .3s ease-in forwards; }
+.announcement-icon { font-size: 20px; }
+.announcement p { flex: 1; margin: 0; font-size: 15px; line-height: 1.4; overflow-wrap: anywhere; }
+.announcement button { border: none; background: transparent; font-size: 18px; padding: 0 6px; color: var(--muted); }
+.announcement button:hover { color: var(--text); }
+.announcement-timer {
+  position: absolute;
+  left: 0;
+  bottom: 0;
+  height: 3px;
+  width: 100%;
+  background: var(--accent);
+  transform-origin: left;
+  animation: announce-timer var(--announce-seconds) linear forwards;
+}
+@keyframes announce-in { from { opacity: 0; transform: translate(-50%, -12px); } }
+@keyframes announce-out { to { opacity: 0; transform: translate(-50%, -12px); } }
+@keyframes announce-timer { to { transform: scaleX(0); } }
+
 @media (max-width: 800px) {
   html, body { height: auto; }
   .layout { flex: none; grid-template-columns: 1fr; grid-template-rows: 60vh auto; }
