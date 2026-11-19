@@ -3,19 +3,24 @@
 #
 #   ./announce.sh "New 5x5x5 example is up!"       # new visitors see it for the next 30 min
 #   ./announce.sh "Maintenance at 6pm" 120          # ...for the next 120 min
+#   ./announce.sh --on-open "Hi!"                   # only shown when someone opens the site,
+#                                                   # not pushed live to tabs already open
 #   ./announce.sh --clear                           # remove the current announcement
 #
 # Each visitor sees an announcement once, for 10 seconds. People with the site
-# open pick it up within ~10s of the deploy finishing (about a minute total).
+# open pick it up within ~10s of the deploy finishing (about a minute total),
+# unless it was posted with --on-open.
 set -euo pipefail
 cd "$(dirname "$0")"
 
-usage() { sed -n '2,9p' "$0" | sed 's/^# \{0,1\}//'; exit 1; }
+usage() { sed -n '2,12p' "$0" | sed 's/^# \{0,1\}//'; exit 1; }
 
 if [[ "${1:-}" == "--clear" ]]; then
   jq -n '{id: "", message: "", postedAt: null, showUntil: null}' > announcement.json
   commit_msg="Clear announcement"
 else
+  on_open=false
+  if [[ "${1:-}" == "--on-open" ]]; then on_open=true; shift; fi
   message="${1:-}"
   minutes="${2:-30}"
   [[ -n "${message// }" ]] || usage
@@ -29,7 +34,8 @@ else
     --arg message "$message" \
     --arg postedAt "$(iso "$now")" \
     --arg showUntil "$(iso $((now + minutes * 60)))" \
-    '{id: $id, message: $message, postedAt: $postedAt, showUntil: $showUntil}' > announcement.json
+    --argjson onOpenOnly "$on_open" \
+    '{id: $id, message: $message, postedAt: $postedAt, showUntil: $showUntil, onOpenOnly: $onOpenOnly}' > announcement.json
   commit_msg="Announcement: $message"
 fi
 

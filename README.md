@@ -19,6 +19,7 @@ Show a 10-second banner to everyone using the live site:
 ```sh
 ./announce.sh "New 5x5x5 example is up!"     # new visitors see it for the next 30 min
 ./announce.sh "Maintenance at 6pm" 120        # ...or for the next 120 min
+./announce.sh --on-open "Hi!"                 # only when someone opens the site, not live
 ./announce.sh --clear                         # take it down
 ```
 

@@ -947,7 +947,9 @@
     announceTimer = setTimeout(hideAnnouncement, ANNOUNCE_SECONDS * 1000);
   }
 
-  async function checkAnnouncement() {
+  // onPageOpen is true only for the check made when the page first loads.
+  // Announcements posted with --on-open are only shown on that first check.
+  async function checkAnnouncement(onPageOpen = false) {
     if (location.protocol === 'file:') return; // only works when served from a website
     try {
       const res = await fetch(`announcement.json?t=${Date.now()}`, { cache: 'no-store' });
@@ -955,6 +957,7 @@
       const a = await res.json();
       if (!a || !a.id || typeof a.message !== 'string' || !a.message.trim()) return;
       if (!(Date.parse(a.showUntil) > Date.now())) return;
+      if (a.onOpenOnly === true && !onPageOpen) return;
       if (shownThisSession.has(a.id) || seenIds().includes(a.id)) return;
       markSeen(a.id);
       showAnnouncement(a.message.trim().slice(0, 280));
@@ -962,11 +965,11 @@
   }
 
   $('announcementClose').addEventListener('click', hideAnnouncement);
-  checkAnnouncement();
+  checkAnnouncement(true);
   setInterval(() => { if (!document.hidden) checkAnnouncement(); }, POLL_MS);
   // Browsers slow down timers in background tabs, so check right away on return.
   document.addEventListener('visibilitychange', () => { if (!document.hidden) checkAnnouncement(); });
-  window.addEventListener('focus', checkAnnouncement);
+  window.addEventListener('focus', () => checkAnnouncement());
 
   refresh();
   resize();
