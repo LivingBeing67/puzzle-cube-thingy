@@ -1,8 +1,12 @@
 {
-  "id": "1795111223",
-  "message": "👀",
-  "postedAt": "2026-11-19T18:00:23Z",
-  "showUntil": "2026-11-19T18:30:23Z",
+  "id": "1795111351",
+  "message": "🔄 Everyone reload the page!",
+  "postedAt": "2026-11-19T18:02:31Z",
+  "showUntil": "2026-11-19T18:32:31Z",
   "onOpenOnly": false,
-  "image": "images/scare.jpg"
+  "followUp": {
+    "id": "1795111351-then",
+    "message": "👀",
+    "image": "images/scare.jpg"
+  }
 }
