@@ -266,6 +266,76 @@ input[type="range"] { accent-color: var(--accent); }
   .scare img { animation: none; }
 }
 
+/* Visitor: an image that slides in from the left, spins, says something, then leaves right. */
+.visitor {
+  --visitor-ms: 6000ms;
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  z-index: 150;
+  width: min(42vmin, 340px);
+  pointer-events: none;
+  transform: translate(calc(-50% - 100vw), -50%);
+}
+.visitor[hidden] { display: none; }
+.visitor img {
+  display: block;
+  width: 100%;
+  border-radius: 18px;
+  box-shadow: 0 16px 40px rgba(0, 0, 0, .55);
+}
+.visitor-bubble {
+  position: absolute;
+  bottom: calc(100% + 18px);
+  left: 50%;
+  transform: translateX(-50%);
+  width: max-content;
+  max-width: min(80vw, 420px);
+  padding: 12px 18px;
+  background: #fff;
+  color: #111;
+  font-size: 20px;
+  font-weight: 800;
+  line-height: 1.3;
+  text-align: center;
+  border-radius: 16px;
+  opacity: 0;
+}
+.visitor-bubble:empty { display: none; }
+.visitor-bubble::after {
+  content: "";
+  position: absolute;
+  top: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  border: 12px solid transparent;
+  border-top-color: #fff;
+}
+.visitor.run { animation: visitor-path var(--visitor-ms) linear forwards; }
+.visitor.run .visitor-bubble { animation: visitor-bubble var(--visitor-ms) linear forwards; }
+
+/* 0–15% slide in · 15–35% spin · 35–85% stay and talk · 85–100% leave */
+@keyframes visitor-path {
+  0%   { transform: translate(calc(-50% - 100vw), -50%) rotate(0deg); animation-timing-function: cubic-bezier(.2, .8, .3, 1); }
+  15%  { transform: translate(-50%, -50%) rotate(0deg); animation-timing-function: ease-in-out; }
+  35%  { transform: translate(-50%, -50%) rotate(360deg); }
+  85%  { transform: translate(-50%, -50%) rotate(360deg); animation-timing-function: cubic-bezier(.6, 0, .9, .4); }
+  100% { transform: translate(calc(-50% + 100vw), -50%) rotate(360deg); }
+}
+@keyframes visitor-bubble {
+  0%, 35% { opacity: 0; }
+  38%, 82% { opacity: 1; }
+  85%, 100% { opacity: 0; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .visitor.run { animation-name: visitor-fade; }
+  @keyframes visitor-fade {
+    0%   { transform: translate(-50%, -50%); opacity: 0; }
+    10%, 90% { transform: translate(-50%, -50%); opacity: 1; }
+    100% { transform: translate(-50%, -50%); opacity: 0; }
+  }
+}
+
 @media (max-width: 800px) {
   html, body { height: auto; }
   .layout { flex: none; grid-template-columns: 1fr; grid-template-rows: 60vh auto; }

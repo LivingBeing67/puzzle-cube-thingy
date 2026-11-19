@@ -973,15 +973,50 @@
     }, 350);
   }
 
-  async function loadImage(src) {
+  async function loadImage(src, img = scareImg) {
     if (!IMAGE_RE.test(src)) return false;
     try {
-      scareImg.src = src;
-      await scareImg.decode();
+      img.src = src;
+      await img.decode();
       return true;
     } catch {
       return false;
     }
+  }
+
+  // ----- Visitor: slides in, spins, says a line, leaves -----
+  const VISITOR_MS = 6000;
+  const visitorEl = $('visitor');
+  const visitorImg = $('visitorImg');
+  const visitorBubble = $('visitorBubble');
+  const visitorTimers = [];
+
+  // Speak with the browser's built-in voice, low and slow. Browsers may refuse
+  // until the visitor has interacted with the page; the speech bubble covers that.
+  function speak(text) {
+    try {
+      if (!('speechSynthesis' in window)) return;
+      const u = new SpeechSynthesisUtterance(text);
+      u.pitch = 0.2;
+      u.rate = 0.85;
+      speechSynthesis.cancel();
+      speechSynthesis.speak(u);
+    } catch { /* speech unavailable */ }
+  }
+
+  function showVisitor(say) {
+    visitorTimers.splice(0).forEach(clearTimeout);
+    visitorBubble.textContent = say;
+    visitorEl.style.setProperty('--visitor-ms', `${VISITOR_MS}ms`);
+    visitorEl.classList.remove('run');
+    visitorEl.hidden = false;
+    void visitorEl.offsetWidth; // restart the animation
+    visitorEl.classList.add('run');
+    if (say) visitorTimers.push(setTimeout(() => speak(say), VISITOR_MS * 0.36));
+    visitorTimers.push(setTimeout(() => {
+      visitorEl.hidden = true;
+      visitorEl.classList.remove('run');
+    }, VISITOR_MS));
   }
 
   function showScare() {
@@ -1025,15 +1060,20 @@
 
   // Show one announcement if it's valid, in its time window, and not seen yet.
   async function maybeShow(a, onPageOpen) {
-    if (!a || !a.id || typeof a.message !== 'string' || !a.message.trim()) return;
+    if (!a || !a.id) return;
+    const message = typeof a.message === 'string' ? a.message.trim().slice(0, 280) : '';
+    const say = typeof a.say === 'string' ? a.say.trim().slice(0, 140) : '';
+    if (!message && typeof a.visitor !== 'string') return;
     if (!(Date.parse(a.showUntil) > Date.now())) return;
     if (a.onOpenOnly === true && !onPageOpen) return;
     if (shownThisSession.has(a.id) || seenIds().includes(a.id)) return;
     markSeen(a.id);
-    // Load the image before showing anything, so the picture, banner and sound land together.
+    // Load images before showing anything, so everything lands together.
     const hasImage = typeof a.image === 'string' && await loadImage(a.image);
-    showAnnouncement(a.message.trim().slice(0, 280));
+    const hasVisitor = typeof a.visitor === 'string' && await loadImage(a.visitor, visitorImg);
+    if (message) showAnnouncement(message);
     if (hasImage) showScare();
+    if (hasVisitor) showVisitor(say);
     if (typeof a.sound === 'string') playAnnouncementSound(a.sound);
   }
 

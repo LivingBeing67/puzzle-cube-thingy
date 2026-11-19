@@ -23,6 +23,7 @@ Show a 10-second banner to everyone using the live site:
 ./announce.sh --sound wilhelm "AAAAH!"        # play a sound from sounds/ too
 ./announce.sh --image scare "boo"             # pop an image from images/ up full screen for 1.5s
 ./announce.sh --then-image scare "Everyone reload the page!"   # surprise after they reload
+./announce.sh --visitor larry --say "hi"      # images/larry.* slides in, spins, says it, leaves
 ./announce.sh --clear                         # take it down
 ```
 
