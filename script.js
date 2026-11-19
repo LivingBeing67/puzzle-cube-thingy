@@ -993,16 +993,33 @@
 
   // Speak with the browser's built-in voice, low and slow. Browsers may refuse
   // until the visitor has interacted with the page; the speech bubble covers that.
+  // If the browser refuses ("not-allowed": no click/key press yet), the line is
+  // kept and spoken on the visitor's next click or key press within 2 minutes.
+  const SPEECH_WAIT_MS = 120000;
+  let pendingSpeech = null;
+
   function speak(text) {
     try {
       if (!('speechSynthesis' in window)) return;
       const u = new SpeechSynthesisUtterance(text);
-      u.pitch = 0.2;
-      u.rate = 0.85;
+      u.pitch = 0.1; // evil: as low and slow as browsers allow
+      u.rate = 0.75;
+      u.onerror = (e) => {
+        if (e.error === 'not-allowed') pendingSpeech = { text, until: Date.now() + SPEECH_WAIT_MS };
+      };
       speechSynthesis.cancel();
       speechSynthesis.speak(u);
     } catch { /* speech unavailable */ }
   }
+
+  function speakPending() {
+    if (!pendingSpeech) return;
+    const { text, until } = pendingSpeech;
+    pendingSpeech = null;
+    if (Date.now() < until) speak(text);
+  }
+  window.addEventListener('pointerdown', speakPending, true);
+  window.addEventListener('keydown', speakPending, true);
 
   function showVisitor(say) {
     visitorTimers.splice(0).forEach(clearTimeout);
@@ -1063,7 +1080,8 @@
     if (!a || !a.id) return;
     const message = typeof a.message === 'string' ? a.message.trim().slice(0, 280) : '';
     const say = typeof a.say === 'string' ? a.say.trim().slice(0, 140) : '';
-    if (!message && typeof a.visitor !== 'string') return;
+    const spoken = typeof a.speak === 'string' ? a.speak.trim().slice(0, 200) : '';
+    if (!message && !spoken && typeof a.visitor !== 'string') return;
     if (!(Date.parse(a.showUntil) > Date.now())) return;
     if (a.onOpenOnly === true && !onPageOpen) return;
     if (shownThisSession.has(a.id) || seenIds().includes(a.id)) return;
@@ -1075,6 +1093,7 @@
     if (hasImage) showScare();
     if (hasVisitor) showVisitor(say);
     if (typeof a.sound === 'string') playAnnouncementSound(a.sound);
+    if (spoken) speak(spoken);
   }
 
   // onPageOpen is true only for the check made when the page first loads.
