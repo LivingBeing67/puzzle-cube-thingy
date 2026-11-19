@@ -1003,8 +1003,10 @@
     removeYouTube();
     const canPlaySound = !!(navigator.userActivation && navigator.userActivation.hasBeenActive);
     ytMuted = !canPlaySound;
+    // No controls and no keyboard shortcuts: it can't be paused or muted from the player.
     const params = new URLSearchParams({
       autoplay: '1', mute: ytMuted ? '1' : '0', enablejsapi: '1',
+      controls: '0', disablekb: '1', fs: '0',
       playsinline: '1', rel: '0', origin: location.origin,
     });
     const wrap = document.createElement('div');
@@ -1031,7 +1033,14 @@
     const state = d.event === 'onStateChange' ? d.info
       : d.event === 'infoDelivery' && d.info && typeof d.info.playerState === 'number' ? d.info.playerState
         : null;
-    if (state === 0) removeYouTube(); // 0 = ended
+    if (state === 0) { removeYouTube(); return; } // 0 = ended
+    // Once it's playing with sound, keep it that way: undo any mute or volume change.
+    const info = d.event === 'infoDelivery' ? d.info : null;
+    if (info && !ytMuted && (info.muted === true || (typeof info.volume === 'number' && info.volume < 100))) {
+      ytCommand('unMute');
+      ytCommand('setVolume', [100]);
+    }
+    if (!ytMuted && state === 2) ytCommand('playVideo'); // 2 = paused
   });
 
   function ytUnmuteOnGesture() {
@@ -1039,6 +1048,7 @@
     ytMuted = false;
     ytCommand('seekTo', [0, true]);
     ytCommand('unMute');
+    ytCommand('setVolume', [100]);
     ytCommand('playVideo');
   }
   window.addEventListener('pointerdown', ytUnmuteOnGesture, true);

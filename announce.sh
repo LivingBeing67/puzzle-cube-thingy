@@ -16,6 +16,8 @@
 #   ./announce.sh --speak "space nerd"              # say it in an evil voice (no banner
 #                                                   # unless a message is also given)
 #   ./announce.sh --youtube "https://youtu.be/ID"   # small corner player, plays once, then goes
+#   ./announce.sh --then-youtube "https://youtu.be/ID" "Reload your page!"
+#                                                   # YouTube player for people who reload
 #   ./announce.sh --clear                           # remove the current announcement
 #
 # Each visitor sees an announcement once, for 10 seconds. People with the site
@@ -24,7 +26,7 @@
 set -euo pipefail
 cd "$(dirname "$0")"
 
-usage() { sed -n '2,23p' "$0" | sed 's/^# \{0,1\}//'; exit 1; }
+usage() { sed -n '2,25p' "$0" | sed 's/^# \{0,1\}//'; exit 1; }
 die() { echo "$1" >&2; exit 1; }
 
 # find_asset <folder> <name> <ext...>: print folder/name.ext for the first that exists.
@@ -49,6 +51,7 @@ else
   say=""
   speak=""
   youtube=""
+  then_youtube=""
   then_sound=""
   then_image=""
   while [[ "${1:-}" == --* ]]; do
@@ -66,6 +69,12 @@ else
         url="${2:-}"
         if [[ "$url" =~ (v=|youtu\.be/|/embed/|/shorts/)([A-Za-z0-9_-]{11}) ]]; then youtube="${BASH_REMATCH[2]}"
         elif [[ "$url" =~ ^[A-Za-z0-9_-]{11}$ ]]; then youtube="$url"
+        else die "Couldn't find a YouTube video ID in: $url"; fi
+        shift 2 ;;
+      --then-youtube)
+        url="${2:-}"
+        if [[ "$url" =~ (v=|youtu\.be/|/embed/|/shorts/)([A-Za-z0-9_-]{11}) ]]; then then_youtube="${BASH_REMATCH[2]}"
+        elif [[ "$url" =~ ^[A-Za-z0-9_-]{11}$ ]]; then then_youtube="$url"
         else die "Couldn't find a YouTube video ID in: $url"; fi
         shift 2 ;;
       *) usage ;;
@@ -95,6 +104,7 @@ else
     --arg youtube "$youtube" \
     --arg thenSound "$then_sound" \
     --arg thenImage "$then_image" \
+    --arg thenYoutube "$then_youtube" \
     '{id: $id, message: $message, postedAt: $postedAt, showUntil: $showUntil, onOpenOnly: $onOpenOnly}
      + (if $sound == "" then {} else {sound: $sound} end)
      + (if $image == "" then {} else {image: $image} end)
@@ -102,8 +112,9 @@ else
      + (if $say == "" then {} else {say: $say} end)
      + (if $speak == "" then {} else {speak: $speak} end)
      + (if $youtube == "" then {} else {youtube: $youtube} end)
-     + (if $thenMsg == "" and $thenSound == "" and $thenImage == "" then {} else
-         {followUp: ({id: ($id + "-then"), message: (if $thenMsg == "" then "👀" else $thenMsg end)}
+     + (if $thenMsg == "" and $thenSound == "" and $thenImage == "" and $thenYoutube == "" then {} else
+         {followUp: ({id: ($id + "-then"), message: (if $thenMsg == "" and $thenYoutube == "" then "👀" else $thenMsg end)}
+           + (if $thenYoutube == "" then {} else {youtube: $thenYoutube} end)
            + (if $thenSound == "" then {} else {sound: $thenSound} end)
            + (if $thenImage == "" then {} else {image: $thenImage} end))}
        end)' > announcement.json
