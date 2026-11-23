@@ -1,12 +1,8 @@
 {
-  "id": "1795114491",
-  "message": "🔄 Reload your page!",
-  "postedAt": "2026-11-19T18:54:51Z",
-  "showUntil": "2026-11-19T19:24:51Z",
-  "onOpenOnly": false,
-  "followUp": {
-    "id": "1795114491-then",
-    "message": "",
-    "youtube": "dQw4w9WgXcQ"
-  }
+  "id": "1795460355",
+  "message": "",
+  "postedAt": "2026-11-23T18:59:15Z",
+  "showUntil": "2026-11-23T19:59:15Z",
+  "onOpenOnly": true,
+  "youtube": "dQw4w9WgXcQ"
 }
