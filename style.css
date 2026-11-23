@@ -339,7 +339,7 @@ input[type="range"] { accent-color: var(--accent); }
 /* YouTube player: small and visible (YouTube requires at least 200px tall). */
 .yt-player {
   position: fixed;
-  left: 16px;
+  right: 16px;
   bottom: 16px;
   z-index: 90;
   width: min(356px, calc(100vw - 24px));
